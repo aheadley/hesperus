@@ -16,11 +16,15 @@ class OpsviewPlugin(CommandPlugin,PollPlugin):
             self.max_state_duration = max_state_duration
             self.alerting = []
 
-    @plugin.CommandPlugin.register_command('status')
+    @plugin.CommandPlugin.register_command(r'status')
     def status_command(self, chans, match, direct, reply):
         pass
 
-    @plugin.CommandPlugin.register_command('ack')
+    @plugin.CommandPlugin.register_command(r'ack\s+([0-9A-Za-z\._-]+)(?: ())')
+    def ack_command(self, chans, match, direct, reply):
+        pass
+
+    @plugin.CommandPlugin.register_command(r'ackall\s+(.+)')
     def ack_command(self, chans, match, direct, reply):
         pass
 
