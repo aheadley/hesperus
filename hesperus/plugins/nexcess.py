@@ -43,7 +43,7 @@ class NocworxPlugin(CommandPlugin):
             else:
                 reply('No matches found :(')
         except nocworx.ApiException as e:
-            reply('API Error: {0}'.format(e))
+            reply('API Error: {0}: {1}'.format(e.__class__.__name__, e))
 
     def _get_drive_count(self, server):
         types = list(set(v for (k, v) in server.iteritems() \
