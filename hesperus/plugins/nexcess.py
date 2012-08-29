@@ -42,7 +42,6 @@ class NocworxPlugin(CommandPlugin):
         else:
             reply('No matches found :(')
 
-
     def _get_drive_count(self, server):
         types = list(set(v for (k, v) in server.iteritems() \
             if k.startswith('hdd') and k.endswith('_desc') and not v.startswith('0')))
