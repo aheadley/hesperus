@@ -26,21 +26,24 @@ class NocworxPlugin(CommandPlugin):
         else:
             reply('"{m}" doesn\'t look like an IP address to me...'.format(m=m))
             return
-        for service in self._api.client_service.list(search=ip):
-            self.log_debug(service)
-            allocation = self._api.client_service_hosting.list_allocations(
-                service_id=service['service_id'])
-            self.log_debug(allocation)
-            for server in self._api.allocation_dedicated.list_servers(
-                    allocation_id=allocation['allocation_id']):
-                self.log_debug(server)
-                s = self._api.server.list(search='id:{server_id}'.format(**server))
-                if s:
-                    reply(self.REPLY_SERVER_LOOKUP.format(
-                        ip=ip, drives=self._get_drive_count(s[0]), **s[0]))
-                    return
-        else:
-            reply('No matches found :(')
+        try:
+            for service in self._api.client_service.list(search=ip):
+                self.log_debug(service)
+                allocation = self._api.client_service_hosting.list_allocations(
+                    service_id=service['service_id'])
+                self.log_debug(allocation)
+                for server in self._api.allocation_dedicated.list_servers(
+                        allocation_id=allocation['allocation_id']):
+                    self.log_debug(server)
+                    s = self._api.server.list(search='id:{server_id}'.format(**server))
+                    if s:
+                        reply(self.REPLY_SERVER_LOOKUP.format(
+                            ip=ip, drives=self._get_drive_count(s[0]), **s[0]))
+                        return
+            else:
+                reply('No matches found :(')
+        except nocworx.ApiException as e:
+            reply('API Error: {0}'.format(e))
 
     def _get_drive_count(self, server):
         types = list(set(v for (k, v) in server.iteritems() \
