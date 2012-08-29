@@ -1,7 +1,7 @@
 import re
 
 from ..plugin import CommandPlugin
-from nocworx import NocworxApi
+import nocworx
 
 class NocworxPlugin(CommandPlugin):
     REPLY_SERVER_LOOKUP = '{ip} should have {cpu_used}x{cpu_desc}, {ram_desc} ' \
@@ -10,7 +10,7 @@ class NocworxPlugin(CommandPlugin):
     @CommandPlugin.config_types(hosturl=str, username=str, password=str)
     def __init__(self, core, hosturl, username, password):
         super(NocworxPlugin, self).__init__(core)
-        self._api = NocworxApi(hosturl, username, password)
+        self._api = nocworx.NocworxApi(hosturl, username, password)
 
     @CommandPlugin.register_command(r'nocloc\s+(.+)')
     def look_up_location(self, chans, name, match, direct, reply):
