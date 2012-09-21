@@ -92,6 +92,7 @@ class NocworxPlugin(PassivePlugin, CommandPlugin):
         if not self._ip_on_cooldown(ip) and \
                 not any(ip.startswith(subnet) for subnet in ['127.', '10.', '192.168.', '172.']):
             try:
+                self._recent_ips[ip] = now
                 for service in self._api.client_service.list(search=ip):
                     allocation = self._api.client_service_hosting.list_allocations(
                         service_id=service['service_id'])
@@ -109,8 +110,7 @@ class NocworxPlugin(PassivePlugin, CommandPlugin):
                             ))
                         return
             except nocworx.ApiException as e:
-                self.log_warn(e)
-            self._recent_ips[ip] = now
+                self.log_warning(e)
 
     def _ip_on_cooldown(self, ip):
         return not (ip not in self._recent_ips or \
