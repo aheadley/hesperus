@@ -110,6 +110,7 @@ class NocworxPlugin(PassivePlugin, CommandPlugin):
                         return
             except nocworx.ApiException as e:
                 self.log_warn(e)
+            self._recent_ips[ip] = now
 
     def _ip_on_cooldown(self, ip):
         return not (ip not in self._recent_ips or \
