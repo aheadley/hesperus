@@ -1,11 +1,15 @@
 import re
+import socket
 
 from ..plugin import CommandPlugin
 import nocworx
 
 class NocworxPlugin(CommandPlugin):
-    REPLY_SERVER_LOOKUP = '{ip} should have {cpu_used}x{cpu_desc}, {ram_desc} ' \
+    REPLY_SERVER_LOOKUP = '{ip} ({service_desc}) should have {cpu_used}x{cpu_desc}, {ram_desc} ' \
         'RAM, and {drives}'
+    REPLY_SERVER_LOCATION = '{ip} ({alloc[main_ip]}) is at {alloc[location]} / ' \
+        '{alloc[network-switches][0][hostname]}#{alloc[network-switches][0][ports][0][name]} / ' \
+        '{alloc[power-switches][0][hostname]}#{alloc[power-switches][0][ports][0][name]}'
 
     @CommandPlugin.config_types(hosturl=str, username=str, password=str)
     def __init__(self, core, hosturl, username, password):
@@ -14,9 +18,18 @@ class NocworxPlugin(CommandPlugin):
 
     @CommandPlugin.register_command(r'nocloc\s+(.+)')
     def look_up_location(self, chans, name, match, direct, reply):
-        hostname = match.groups(1)
-        location = self._api.host.get(hostname=hostname)
-        reply('Host should be at {location}'.format(location=location))
+        try:
+            ip = socket.gethostbyname(match.group(1))
+        except socket.gaierror:
+            reply('I dunno what that is')
+            return
+        self.log_debug('{0} -> {1}'.format(match.group(1), ip))
+        allocs = self._api.allocation_dedicated.list(search=ip)
+        for alloc in allocs:
+            self.log_debug(alloc)
+            if ip in alloc['ip_addresses']:
+                reply(self.REPLY_SERVER_LOCATION.format(ip=ip, alloc=alloc))
+                break
 
     @CommandPlugin.register_command(r'nocsrv\s+(.+)')
     def look_up_server(self, chans, name, match, direct, reply):
@@ -38,7 +51,8 @@ class NocworxPlugin(CommandPlugin):
                     s = self._api.server.list(search='id:{server_id}'.format(**server))
                     if s:
                         reply(self.REPLY_SERVER_LOOKUP.format(
-                            ip=ip, drives=self._get_drive_count(s[0]), **s[0]))
+                            ip=ip, service_desc=service['description'],
+                            drives=self._get_drive_count(s[0]), **s[0]))
                         return
             else:
                 reply('No matches found :(')
