@@ -4,14 +4,15 @@ from time import time
 
 class IpCheckerPlugin(PassivePlugin):
     _recent_ips = {}
-    
+
     @PassivePlugin.config_types(cooldown=int)
     def __init__(self, core, cooldown=60):
         super(IpCheckerPlugin, self).__init__(core)
         self._cooldown = cooldown
 
     @PassivePlugin.register_pattern(r'\b((?:\d{1,3}\.){3}\d{1,3})\b')
-    def check_ip(self, match, reply):
+    def check_ip(self, chans, name, match, direct, reply):
+        if direct: return
         ip = match.group(1)
         now = int(time())
         if not self._ip_on_cooldown(ip) and \
