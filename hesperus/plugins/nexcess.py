@@ -2,6 +2,7 @@ import re
 import socket
 import random
 import urllib
+from time import time
 
 from ..plugin import CommandPlugin, PassivePlugin
 from ..core import ET
@@ -18,8 +19,8 @@ class NocworxPlugin(PassivePlugin, CommandPlugin):
         '{alloc[power-switches][0][hostname]}#{alloc[power-switches][0][ports][0][name]} <{short_url}>'
     REPLY_SERVICE_INFO = '(btw: {ip} is a ({status}) {desc} with {ip_count} IPs <{short_url}>)'
 
-    @CommandPlugin.config_types(hosturl=str, username=str, password=str, no_match_urls=ET.Element, chance=float)
-    def __init__(self, core, hosturl, username, password, no_match_urls=None, chance=0.10):
+    @CommandPlugin.config_types(hosturl=str, username=str, password=str, no_match_urls=ET.Element, chance=float, cooldown=int)
+    def __init__(self, core, hosturl, username, password, no_match_urls=None, chance=0.10, cooldown=120):
         super(NocworxPlugin, self).__init__(core)
         self._hosturl = hosturl
         self._api = nocworx.NocworxApi(self._hosturl, username, password)
@@ -29,6 +30,8 @@ class NocworxPlugin(PassivePlugin, CommandPlugin):
                 if el.tag.lower() == 'url']
         else:
             self._no_match_urls = []
+        self._recent_ips = {}
+        self._cooldown = cooldown
 
     @CommandPlugin.register_command(r'(?:noc)?loc\s+(.+)')
     def look_up_location(self, chans, name, match, direct, reply):
@@ -85,25 +88,32 @@ class NocworxPlugin(PassivePlugin, CommandPlugin):
     def service_info(self, chans, name, match, direct, reply):
         if direct: return
         ip = match.group(1).strip()
-        try:
-            for service in self._api.client_service.list(search=ip):
-                allocation = self._api.client_service_hosting.list_allocations(
-                    service_id=service['service_id'])
-                allocation_info = self._api.allocation_dedicated.list(
-                    search='id:' + str(allocation['allocation_id']))[0]
-                if ip in allocation_info['ip_addresses']:
-                    reply(self.REPLY_SERVICE_INFO.format(
-                        ip=ip,
-                        status=service['status'],
-                        desc=service['description'],
-                        ip_count=len(allocation_info['ip_addresses']),
-                        short_url=short_url(self.URL_ALLOCATION.format(
-                            hosturl=self._hosturl,
-                            allocation_id=allocation['allocation_id']))
-                        ))
-                    return
-        except nocworx.ApiException as e:
-            self.log_warn(e)
+        now = int(time())
+        if not self._ip_on_cooldown(ip) and \
+                not any(ip.startswith(subnet) for subnet in ['127.', '10.', '192.168.', '172.']):
+            try:
+                for service in self._api.client_service.list(search=ip):
+                    allocation = self._api.client_service_hosting.list_allocations(
+                        service_id=service['service_id'])
+                    allocation_info = self._api.allocation_dedicated.list(
+                        search='id:' + str(allocation['allocation_id']))[0]
+                    if ip in allocation_info['ip_addresses']:
+                        reply(self.REPLY_SERVICE_INFO.format(
+                            ip=ip,
+                            status=service['status'],
+                            desc=service['description'],
+                            ip_count=len(allocation_info['ip_addresses']),
+                            short_url=short_url(self.URL_ALLOCATION.format(
+                                hosturl=self._hosturl,
+                                allocation_id=allocation['allocation_id']))
+                            ))
+                        return
+            except nocworx.ApiException as e:
+                self.log_warn(e)
+
+    def _ip_on_cooldown(self, ip):
+        return not (ip not in self._recent_ips or \
+            (ip in self._recent_ips and int(time()) - self._recent_ips[ip] > self._cooldown))
 
     def _get_drive_count(self, server):
         types = list(set(v for (k, v) in server.iteritems() \
