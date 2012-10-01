@@ -4,12 +4,12 @@ import random
 import urllib
 from time import time
 
-from ..plugin import CommandPlugin, PassivePlugin
+from ..plugin import PassivePlugin, PollPlugin
 from ..core import ET
 from ..shorturl import short_url
 import nocworx
 
-class NocworxPlugin(PassivePlugin, CommandPlugin):
+class NocworxPlugin(PollPlugin, PassivePlugin):
     URL_SEARCH = '{hosturl}search?q={query}'
     URL_ALLOCATION = '{hosturl}allocation-dedicated/overview?allocation_id={allocation_id}'
     REPLY_SERVER_LOOKUP = '{ip} ({service_desc}) should have {cpu_used}x{cpu_desc}, {ram_desc} ' \
@@ -19,7 +19,9 @@ class NocworxPlugin(PassivePlugin, CommandPlugin):
         '{alloc[power-switches][0][hostname]}#{alloc[power-switches][0][ports][0][name]} <{short_url}>'
     REPLY_SERVICE_INFO = '(btw: {ip} is a ({status}) {desc} with {ip_count} IPs <{short_url}>)'
 
-    @CommandPlugin.config_types(hosturl=str, username=str, password=str, no_match_urls=ET.Element, chance=float, cooldown=int)
+    poll_interval = 14400.0
+
+    @PassivePlugin.config_types(hosturl=str, username=str, password=str, no_match_urls=ET.Element, chance=float, cooldown=int)
     def __init__(self, core, hosturl, username, password, no_match_urls=None, chance=0.10, cooldown=120):
         super(NocworxPlugin, self).__init__(core)
         self._hosturl = hosturl
@@ -33,7 +35,7 @@ class NocworxPlugin(PassivePlugin, CommandPlugin):
         self._recent_ips = {}
         self._cooldown = cooldown
 
-    @CommandPlugin.register_command(r'(?:noc)?loc\s+(.+)')
+    @PassivePlugin.register_command(r'(?:noc)?loc\s+(.+)')
     def look_up_location(self, chans, name, match, direct, reply):
         host = match.group(1).strip()
         try:
@@ -55,7 +57,7 @@ class NocworxPlugin(PassivePlugin, CommandPlugin):
         except nocworx.ApiException as e:
             reply('API Error: {0}: {1}'.format(e.__class__.__name__, e))
 
-    @CommandPlugin.register_command(r'nocsrv\s+(.+)')
+    @PassivePlugin.register_command(r'nocsrv\s+(.+)')
     def look_up_server(self, chans, name, match, direct, reply):
         host = match.group(1).strip()
         try:
@@ -111,6 +113,10 @@ class NocworxPlugin(PassivePlugin, CommandPlugin):
                         return
             except nocworx.ApiException as e:
                 self.log_warning(e)
+
+    def poll(self):
+        self._api.api.set(**{'max-results': 10})
+        yield
 
     def _ip_on_cooldown(self, ip):
         return not (ip not in self._recent_ips or \
