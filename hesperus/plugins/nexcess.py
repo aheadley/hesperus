@@ -19,7 +19,7 @@ class NocworxPlugin(PollPlugin, PassivePlugin):
         '{alloc[power-switches][0][hostname]}#{alloc[power-switches][0][ports][0][name]} <{short_url}>'
     REPLY_SERVICE_INFO = '(btw: {ip} is a ({status}) {desc} with {ip_count} IPs <{short_url}>)'
 
-    poll_interval = 14400.0
+    poll_interval = 1500.0
 
     @PassivePlugin.config_types(hosturl=str, username=str, password=str, no_match_urls=ET.Element, chance=float, cooldown=int)
     def __init__(self, core, hosturl, username, password, no_match_urls=None, chance=0.10, cooldown=120):
