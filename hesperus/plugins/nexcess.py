@@ -115,6 +115,7 @@ class NocworxPlugin(PollPlugin, PassivePlugin):
                 self.log_warning(e)
 
     def poll(self):
+        self.log_debug('Sending NocWorx session keep-alive...')
         self._api.api.set(**{'max-results': 10})
         yield
 
