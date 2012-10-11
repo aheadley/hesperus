@@ -66,23 +66,27 @@ class NocworxPlugin(PollPlugin, PassivePlugin):
             reply('I dunno what that is')
             return
         try:
-            for service in self._api.client_service.list(search=ip):
-                allocation = self._api.client_service_hosting.list_allocations(
+            services = self._api.client_service.list(search=ip)
+            for service in services:
+                allocations = self._api.client_service_hosting.list_allocations(
                     service_id=service['service_id'])
-                for server in self._api.allocation_dedicated.list_servers(
-                        allocation_id=allocation['allocation_id']):
-                    s = self._api.server.list(search='id:{server_id}'.format(**server))
-                    if s:
-                        reply(self.REPLY_SERVER_LOOKUP.format(
-                            ip=host, service_desc=service['description'],
-                            drives=self._get_drive_count(s[0]),
-                            short_url=short_url(self.URL_ALLOCATION.format(
-                                hosturl=self._hosturl,
-                                allocation_id=allocation['allocation_id'])),
-                            **s[0]))
-                        return
+                for allocation in allocations:
+                    servers = self._api.allocation_dedicated.list_servers(
+                        allocation_id=allocation['allocation_id'])
+                    for server in servers:
+                        s = self._api.server.list(search='id:{server_id}'.format(**server))
+                        if s:
+                            reply(self.REPLY_SERVER_LOOKUP.format(
+                                ip=host, service_desc=service['description'],
+                                drives=self._get_drive_count(s[0]),
+                                short_url=short_url(self.URL_ALLOCATION.format(
+                                    hosturl=self._hosturl,
+                                    allocation_id=allocation['allocation_id'])),
+                                **s[0]))
+                            return
             else:
                 self._no_matches_reply(reply, host)
+                        return
         except nocworx.ApiException as e:
             reply('API Error: {0}: {1}'.format(e.__class__.__name__, e))
 
@@ -95,22 +99,25 @@ class NocworxPlugin(PollPlugin, PassivePlugin):
                 not any(ip.startswith(subnet) for subnet in ['127.', '10.', '192.168.', '172.']):
             try:
                 self._recent_ips[ip] = now
-                for service in self._api.client_service.list(search=ip):
-                    allocation = self._api.client_service_hosting.list_allocations(
+                services = self._api.client_service.list(search=ip)
+                for service in services:
+                    allocations = self._api.client_service_hosting.list_allocations(
                         service_id=service['service_id'])
-                    allocation_info = self._api.allocation_dedicated.list(
-                        search='id:' + str(allocation['allocation_id']))[0]
-                    if ip in allocation_info['ip_addresses']:
-                        reply(self.REPLY_SERVICE_INFO.format(
-                            ip=ip,
-                            status=service['status'],
-                            desc=service['description'],
-                            ip_count=len(allocation_info['ip_addresses']),
-                            short_url=short_url(self.URL_ALLOCATION.format(
-                                hosturl=self._hosturl,
-                                allocation_id=allocation['allocation_id']))
-                            ))
-                        return
+                    for allocation in allocations:
+                        allocation_infos = self._api.allocation_dedicated.list(
+                            search='id:' + str(allocation['allocation_id']))
+                        for allocation_info in allocation_infos:
+                            if ip in allocation_info['ip_addresses']:
+                                reply(self.REPLY_SERVICE_INFO.format(
+                                    ip=ip,
+                                    status=service['status'],
+                                    desc=service['description'],
+                                    ip_count=len(allocation_info['ip_addresses']),
+                                    short_url=short_url(self.URL_ALLOCATION.format(
+                                        hosturl=self._hosturl,
+                                        allocation_id=allocation['allocation_id']))
+                                    ))
+                                return
             except nocworx.ApiException as e:
                 self.log_warning(e)
 
