@@ -86,7 +86,7 @@ class NocworxPlugin(PollPlugin, PassivePlugin):
                             return
             else:
                 self._no_matches_reply(reply, host)
-                        return
+                return
         except nocworx.ApiException as e:
             reply('API Error: {0}: {1}'.format(e.__class__.__name__, e))
 
