@@ -7,7 +7,7 @@ class SteamPlugin(PollPlugin, PersistentPlugin, CommandPlugin):
     poll_interval           = 30
     persistence_file        = 'steam.json'
 
-    @CommandPlugin.config_types(steam_api_key=str):
+    @CommandPlugin.config_types(steam_api_key=str)
     def __init__(self, core, steam_api_key):
         super(SteamPlugin, self).__init__(core)
 
@@ -49,7 +49,7 @@ class SteamPlugin(PollPlugin, PersistentPlugin, CommandPlugin):
                 }
                 reply('Added user [%d:%s] to my watch list' % (player.id, player.name))
 
-    @CommandPlugin.register_command(r'steamstatus'):
+    @CommandPlugin.register_command(r'steamstatus')
     def steam_status(self, chans, name, match, direct, reply):
         pass
 
@@ -69,7 +69,7 @@ class SteamPlugin(PollPlugin, PersistentPlugin, CommandPlugin):
 
     def _steam_id_to_friend_id(self, steam_id):
         # @source http://forums.alliedmods.net/showpost.php?p=531769&postcount=1
-        toks = auth_id.split(':')
+        toks = steam_id.split(':')
         server_id = int(toks[1])
         auth_id = int(toks[2])
         return auth_id * 2 + self.STEAM_ID_MAGIC_NUMBER + server_id
