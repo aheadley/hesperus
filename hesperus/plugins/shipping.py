@@ -48,7 +48,7 @@ class PackageTracker(CommandPlugin, PollPlugin):
                 self.log_debug('Word database not loaded: %s' % err)
                 self._tag_generator = FallbackGenerator()
 
-    @CommandPlugin.register_command(r"ptrack(?:\s+([\w\d]+))?(?:\s+(.+))?")
+    @CommandPlugin.register_command(r"ptrack(?:\s+([\w\d:-]+))?(?:\s+(.+))?")
     def track_command(self, chans, name, match, direct, reply):
         if match.group(1):
             tn = match.group(1)
@@ -231,7 +231,7 @@ class PackageStatus(CommandPlugin):
         super(PackageStatus, self).__init__(core)
         packagetrack.auto_register_carriers(DotFileConfig(auth_file))
 
-    @CommandPlugin.register_command(r"pstatus(?:\s+([\w\d]+))?")
+    @CommandPlugin.register_command(r"pstatus(?:\s+([\w\d:-]+))?")
     def status_command(self, chans, name, match, direct, reply):
         if not match.group(1):
             reply('What exactly do you want the status of?')
